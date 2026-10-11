@@ -25,7 +25,9 @@
     <p class="eyebrow">Friedman Economic Games · Proposal 25</p>
     <h1>Cleaning Out Cobwebs</h1>
     <p class="intro">Producers respond to last year’s price. Can a speculator soften the resulting cycles?</p>
-    <p class="prototype">Review prototype v1 · Frozen for David’s review · Accessibility audit required before teaching release.</p>
+    <p class="prototype">Proposed v1 refinements · For review · Accessibility audit required before teaching release.</p>
+    <nav class="section-nav" aria-label="Activity sections"><a href="#settings-heading">Settings</a><a href="#run-heading">Run markets</a><a href="#cobweb-heading">Graphs</a><a href="#experiments-heading">Experiments</a><a href="#data-heading">Data</a></nav>
+    <noscript><p class="notice">JavaScript is needed to run this activity. Enable it, then reload. The model assumptions and project notes remain available below.</p></noscript>
     <section class="instructions" aria-labelledby="instructions-heading">
       <h2 id="instructions-heading">Explore one year at a time</h2>
       <p>Choose a preset, then step through years or run both markets. Each starts with the same curves and price. In one, a speculator buys below a threshold and sells above another, subject to cash and inventory limits.</p>
@@ -38,6 +40,7 @@
         <button type="button" data-preset="repeat">Repeating preset</button>
         <button type="button" data-preset="diverge">Diverging preset</button>
       </div>
+      <p class="control-help">Presets change the curves and starting price, and retain your applied cash, thresholds, and duration. Guided experiments load a complete example.</p>
       <p id="preset-status" role="status"></p>
       <form id="parameters" novalidate>
         <fieldset><legend>Curves and starting price</legend><div class="fields">
@@ -53,7 +56,7 @@
           <div class="field"><label for="sell">Sell above ($)</label><input id="sell" name="sell" type="number" min="0" max="100" step="0.1" value="60" aria-describedby="price-help error-sell"><span class="error" id="error-sell"></span></div>
           <div class="field"><label for="years">Duration (years)</label><input id="years" name="years" type="number" min="1" max="100" step="1" value="40" aria-describedby="error-years"><span class="error" id="error-years"></span></div>
         </div></fieldset>
-        <p id="price-help">Starting price and thresholds cannot exceed A/B; the selling threshold must exceed the buying threshold. C must be smaller than A.</p>
+        <p id="price-help"><span id="price-limit">Current form price ceiling A/B: $100.00.</span> Starting price and thresholds cannot exceed this ceiling; the selling threshold must exceed the buying threshold. C must be smaller than A.</p>
         <div class="button-row"><button class="primary" type="submit" id="apply">Apply and restart</button><button type="button" id="defaults">Restore defaults</button></div>
       </form>
       <p id="draft-status" role="status"></p>
@@ -61,7 +64,7 @@
     <section class="card" aria-labelledby="run-heading">
       <h2 id="run-heading">Compare the two markets</h2>
       <div class="button-row"><button type="button" class="primary" id="step">Step one year</button><button type="button" id="play">Run</button><button type="button" id="restart">Restart run</button></div>
-      <p id="run-progress"></p>
+      <p id="run-progress"></p><p class="control-help">A boundary is the limit of this linear model, not a prediction of a negative real-world price. Stopped runs retain only their valid observations.</p>
       <p id="equilibrium"></p><p id="stability"></p>
       <div class="run-statuses"><p id="baseline-status"></p><p id="speculation-status"></p></div>
       <div id="current-results" class="current-results"></div>
@@ -85,7 +88,7 @@
       <div id="prompt-panel" hidden><h3 id="prompt-title"></h3><p id="prompt-question"></p><p id="prompt-instructions"></p><label for="answer">Your explanation</label><select id="answer"></select><button type="button" id="check">Check explanation</button><p id="prompt-feedback" role="status"></p></div>
     </section>
     <section aria-labelledby="data-heading"><h2 id="data-heading">Complete year-by-year data</h2>
-      <p>Year zero is the prior price used to determine the first year’s output. Signed trades: positive = buy into storage; negative = sell from storage. Inventory valuation is inventory × current price. Wealth adds cash; selling all inventory could change the price, so wealth is not guaranteed liquidation proceeds.</p>
+      <p>Year zero is the prior price used to determine the first year’s output. A dash means no valid observation, not zero. Signed trades: positive = buy into storage; negative = sell from storage. Inventory valuation is inventory × current price. Wealth adds cash; selling all inventory could change the price, so wealth is not guaranteed liquidation proceeds.</p>
       <div class="table-scroll" tabindex="0" role="region" aria-labelledby="data-heading"><table id="market-table"><caption>Comparison of market prices and quantities; all quantities in units</caption><thead><tr><th scope="col">Year</th><th scope="col">Baseline price ($)</th><th scope="col">Baseline output / purchases</th><th scope="col">Speculation price ($)</th><th scope="col">Speculation output</th><th scope="col">Consumer purchases</th></tr></thead><tbody></tbody></table></div>
       <div class="table-scroll" tabindex="0" role="region" aria-label="Speculator finances by year"><table id="finance-table"><caption>Speculator finances and trading constraints</caption><thead><tr><th scope="col">Year</th><th scope="col">Trade (units)</th><th scope="col">Cash ($)</th><th scope="col">Inventory (units)</th><th scope="col">Inventory valuation ($)</th><th scope="col">Wealth ($)</th><th scope="col">Constraint</th></tr></thead><tbody></tbody></table></div>
     </section>

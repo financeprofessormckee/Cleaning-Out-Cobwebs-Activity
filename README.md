@@ -21,6 +21,7 @@ This activity is a browser adaptation of Proposal 25 in David Friedman's
 
 The full model, its adaptations from Friedman's description, and acceptance cases are in
 [SPECIFICATION.md](SPECIFICATION.md). The recorded source brief is in [DESIGN.md](DESIGN.md).
+The proposed restrained refinements and detailed review are in [REVIEW.md](REVIEW.md).
 
 ### Running it locally
 

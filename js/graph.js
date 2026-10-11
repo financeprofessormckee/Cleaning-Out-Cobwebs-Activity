@@ -38,10 +38,10 @@
   function latest(run) { return run.history[run.history.length - 1]; }
   function runSummary(run) {
     var row = latest(run), text = run.speculation ? 'With speculation. ' : 'Without speculation. ';
-    if (!row.year) return text + 'Starting prior price $' + number(row.price) + '; no production year has run.';
-    text += 'Year ' + row.year + ': price $' + number(row.price) + ', output ' + number(row.production) + ', consumer purchases ' + number(row.consumption) + ' units.';
+    if (!row.year) text += 'Starting prior price $' + number(row.price) + '; no valid production year has run.';
+    else text += 'Year ' + row.year + ': price $' + number(row.price) + ', output ' + number(row.production) + ', consumer purchases ' + number(row.consumption) + ' units.';
     if (run.speculation) text += ' Cash $' + number(row.cash) + ', inventory ' + number(row.inventory) + ' units; inventory valuation $' + number(row.valuation) + '; wealth $' + number(row.wealth) + '.';
-    if (run.stop) text += ' Stopped before year ' + run.stop.year + ': ' + run.stop.reason.toLowerCase() + '.';
+    if (run.stop) text += ' Stopped before year ' + run.stop.year + ': ' + run.stop.reason.toLowerCase() + ' (attempted output ' + number(run.stop.production) + ' units; pre-trade price $' + number(run.stop.preTradePrice) + '). Invalid results are not plotted.';
     return text;
   }
   function cobweb(id, run, p, eq, xmax, ymax) {

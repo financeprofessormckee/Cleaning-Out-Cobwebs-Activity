@@ -9,9 +9,18 @@
     keys.forEach(function (key) { $('error-' + key).textContent = map[key] || ''; if (map[key]) $(key).setAttribute('aria-invalid', 'true'); else $(key).removeAttribute('aria-invalid'); });
   }
   function clearSuccess() { $('prompt-feedback').textContent = ''; }
+  function priceLimits() {
+    var A = $('A').value, B = $('B').value;
+    var valid = !M.validate(A, 'A') && !M.validate(B, 'B');
+    ['initialPrice', 'buy', 'sell'].forEach(function (key) {
+      if (valid) $(key).max = Number(A) / Number(B);
+      else $(key).removeAttribute('max');
+    });
+    $('price-limit').textContent = valid ? 'Current form price ceiling A/B: ' + money(Number(A) / Number(B)) + '.' : 'Enter valid A and B values to calculate the price ceiling.';
+  }
   function syncFields() {
     keys.forEach(function (key) { $(key).value = state.params[key]; });
-    ['initialPrice', 'buy', 'sell'].forEach(function (key) { $(key).max = state.params.A / state.params.B; });
+    priceLimits();
     dirty = false; errors({}); $('draft-status').textContent = ''; $('preset-status').textContent = '';
   }
   function controls() {
@@ -52,7 +61,7 @@
       var row = run.history[run.history.length - 1], article = document.createElement('article'), heading = document.createElement('h3');
       heading.textContent = (run.speculation ? 'With' : 'Without') + ' speculation · year ' + row.year; article.appendChild(heading);
       function paragraph(text) { var node = document.createElement('p'); node.textContent = text; article.appendChild(node); }
-      if (!row.year) paragraph('Prior price ' + money(row.price) + '. Production begins when you step year 1.');
+      if (!row.year) paragraph('Prior price ' + money(row.price) + '. ' + (run.stop ? 'No valid production year was completed. ' + status(run) : 'Production begins when you step year 1.'));
       else {
         paragraph('Output = ' + num(state.params.C) + ' + ' + num(state.params.D) + ' × ' + money(row.previousPrice) + ' = ' + num(row.production) + ' units.');
         paragraph('Pre-trade price = (' + num(state.params.A) + ' − ' + num(row.production) + ') / ' + num(state.params.B) + ' = ' + money(row.preTradePrice) + '.');
@@ -69,7 +78,7 @@
   }
   function render() {
     var eq = M.equilibrium(state.params);
-    $('run-progress').textContent = 'Through year ' + state.year + ' of ' + state.params.years + '. Both runs use the applied parameters.';
+    $('run-progress').textContent = 'Attempted through year ' + state.year + ' of ' + state.params.years + '. Last valid year: baseline ' + state.baseline.history[state.baseline.history.length - 1].year + ', speculation ' + state.speculation.history[state.speculation.history.length - 1].year + '. Both runs use the applied parameters.';
     $('equilibrium').textContent = 'Equilibrium: price ' + money(eq.price) + '; quantity ' + num(eq.quantity) + ' units. P* = (A − C)/(B + D).';
     $('stability').textContent = eq.behavior + ' baseline: D/B = ' + num(eq.ratio) + '. Price deviations reverse sign each year and ' + (eq.behavior === 'Converging' ? 'shrink.' : eq.behavior === 'Repeating' ? 'retain their size.' : 'grow until this linear model reaches its boundary.') + ' An exact equilibrium start stays there; speculation has a separate trajectory.';
     $('baseline-status').textContent = status(state.baseline); $('speculation-status').textContent = status(state.speculation);
@@ -78,13 +87,14 @@
   function restart(params, message) { pause(); state = M.start(params); syncFields(); clearSuccess(); render(); announce(message); }
   function step(automatic) {
     if (dirty || M.finished(state)) return;
+    var baselineStatus = state.baseline.status, speculationStatus = state.speculation.status;
     state = M.advance(state);
     if (M.finished(state)) pause();
     render();
-    if (!automatic || M.finished(state)) announce('Through year ' + state.year + '. ' + status(state.baseline) + ' ' + status(state.speculation));
+    if (!automatic || baselineStatus !== state.baseline.status || speculationStatus !== state.speculation.status) announce('Attempted through year ' + state.year + '. ' + status(state.baseline) + ' ' + status(state.speculation));
   }
   keys.forEach(function (key) {
-    $(key).addEventListener('input', function () { pause(); dirty = true; clearSuccess(); $('draft-status').textContent = 'Unapplied changes. Apply and restart, or Restart run to discard drafts. Existing results use the previous settings.'; controls(); });
+    $(key).addEventListener('input', function () { pause(); dirty = true; clearSuccess(); priceLimits(); $('draft-status').textContent = 'Unapplied changes. Apply and restart, or Restart run to discard drafts. Existing results use the previous settings.'; controls(); });
   });
   $('parameters').addEventListener('submit', function (event) {
     event.preventDefault(); pause();
@@ -127,6 +137,7 @@
   $('answer').addEventListener('change', clearSuccess);
   $('check').addEventListener('click', function () {
     if (dirty) return;
+    if (!$('answer').value) { $('prompt-feedback').textContent = 'Choose an explanation before checking.'; $('answer').focus(); return; }
     var result = M.checkPrompt(promptId, state, $('answer').value); $('prompt-feedback').textContent = result.message;
   });
   syncFields(); render();

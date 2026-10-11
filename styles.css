@@ -22,6 +22,11 @@ footer p { margin: 0.4rem 0; }
 @media print { .skip-link, .resources { display: none; } :root { background: #fff; } main { padding-block: 1rem; } }
 
 .prototype { color: #595959; font-size: 0.95rem; }
+.section-nav { display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem; }
+.section-nav a { display: inline-flex; align-items: center; min-height: 44px; font-weight: 600; }
+h2[id] { scroll-margin-top: 1rem; }
+.control-help { color: #595959; font-size: 0.95rem; }
+input { font-variant-numeric: tabular-nums; }
 .instructions { max-width: 64rem; margin-block: 2rem; }
 .card { background: #fff; border: 1px solid #767676; border-radius: 0.5rem; padding: 1.25rem; margin-block: 1.25rem; min-width: 0; }
 .fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); gap: 1rem; }
