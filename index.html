@@ -25,20 +25,28 @@
     <p class="eyebrow">Friedman Economic Games · Proposal 25</p>
     <h1>Cleaning Out Cobwebs</h1>
     <p class="intro">Producers respond to last year’s price. Can a speculator soften the resulting cycles?</p>
-    <p class="prototype">Review prototype v1 · Frozen for David’s review · Accessibility audit required before teaching release.</p>
-    <section class="instructions" aria-labelledby="instructions-heading">
-      <h2 id="instructions-heading">Explore one year at a time</h2>
-      <p>Choose a preset, then step through years or run both markets. Each starts with the same curves and price. In one, a speculator buys below a threshold and sells above another, subject to cash and inventory limits.</p>
-      <p>Production is <strong>Q = C + D × last year’s price</strong>. Consumer demand is <strong>Q = A − B × current price</strong>. Inventory purchases raise the clearing price; sales lower it. Use the plots or the complete data tables to compare results.</p>
-    </section>
-    <section class="card" aria-labelledby="settings-heading">
-      <h2 id="settings-heading">Market and trading policy</h2>
+    <p class="prototype">Proposed interactive lab · For review · Accessibility audit required before teaching release.</p>
+    <nav class="section-nav" aria-label="Activity sections"><a href="#presets-heading">Start</a><a href="#run-heading">Run markets</a><a href="#cobweb-heading">Graphs</a><a href="#experiments-heading">Experiments</a><a href="#finance-heading">Wealth</a><a href="#data-heading">Data</a></nav>
+    <noscript><p class="notice">JavaScript is needed to run this activity. Enable it, then reload. The model assumptions and project notes remain available below.</p></noscript>
+    <div class="learning-loop" aria-label="How a year works"><p><b>01</b> Last price sets output</p><p><b>02</b> Trading clears the market</p><p><b>03</b> New price sets next year</p></div>
+    <div class="launchpad">
+      <section class="card" aria-labelledby="presets-heading"><p class="eyebrow">Explore freely</p><h2 id="presets-heading">Start with a market</h2>
       <div class="button-row" aria-label="Curve presets">
         <button type="button" data-preset="converge">Converging preset</button>
         <button type="button" data-preset="repeat">Repeating preset</button>
         <button type="button" data-preset="diverge">Diverging preset</button>
       </div>
+      <p class="control-help">Presets change the curves and starting price, and retain your applied cash, thresholds, and duration. Guided experiments load a complete example.</p>
       <p id="preset-status" role="status"></p>
+      </section>
+    <section class="card" aria-labelledby="experiments-heading"><h2 id="experiments-heading">Follow a guided experiment</h2>
+      <p>Choose a question, observe both markets, then explain the result. Each loads a complete example; there is no grade.</p>
+      <div class="button-row"><button type="button" data-prompt="converge">1. Convergence</button><button type="button" data-prompt="repeat">2. Repetition</button><button type="button" data-prompt="stabilize">3. Stabilization</button><button type="button" data-prompt="limits">4. Cash limits</button></div>
+      <div id="prompt-panel" hidden><h3 id="prompt-title"></h3><p id="prompt-question"></p><p id="prompt-instructions"></p><label for="answer">Your explanation</label><select id="answer"></select><button type="button" id="check">Check explanation</button><p id="prompt-feedback" role="status"></p></div>
+    </section>
+    </div>
+    <details class="card settings-details" id="settings-details">
+      <summary id="settings-heading">Adjust curves and trading policy <span>Optional: customize the nine model settings</span></summary>
       <form id="parameters" novalidate>
         <fieldset><legend>Curves and starting price</legend><div class="fields">
           <div class="field"><label for="A">Demand intercept A (units)</label><input id="A" name="A" type="number" min="50" max="500" step="1" value="200" aria-describedby="error-A"><span class="error" id="error-A"></span></div>
@@ -53,39 +61,45 @@
           <div class="field"><label for="sell">Sell above ($)</label><input id="sell" name="sell" type="number" min="0" max="100" step="0.1" value="60" aria-describedby="price-help error-sell"><span class="error" id="error-sell"></span></div>
           <div class="field"><label for="years">Duration (years)</label><input id="years" name="years" type="number" min="1" max="100" step="1" value="40" aria-describedby="error-years"><span class="error" id="error-years"></span></div>
         </div></fieldset>
-        <p id="price-help">Starting price and thresholds cannot exceed A/B; the selling threshold must exceed the buying threshold. C must be smaller than A.</p>
+        <p id="price-help"><span id="price-limit">Current form price ceiling A/B: $100.00.</span> Starting price and thresholds cannot exceed this ceiling; the selling threshold must exceed the buying threshold. C must be smaller than A.</p>
         <div class="button-row"><button class="primary" type="submit" id="apply">Apply and restart</button><button type="button" id="defaults">Restore defaults</button></div>
       </form>
       <p id="draft-status" role="status"></p>
-    </section>
-    <section class="card" aria-labelledby="run-heading">
+    </details>
+    <section class="workspace" aria-labelledby="run-heading">
       <h2 id="run-heading">Compare the two markets</h2>
-      <div class="button-row"><button type="button" class="primary" id="step">Step one year</button><button type="button" id="play">Run</button><button type="button" id="restart">Restart run</button></div>
-      <p id="run-progress"></p>
-      <p id="equilibrium"></p><p id="stability"></p>
+      <p id="run-draft-notice" class="draft-notice" hidden>Unapplied settings. Open “Adjust curves and trading policy” to apply them, or use Restart run to discard them. Results still use the applied settings.</p>
+      <div class="control-dock"><div class="button-row playback"><button type="button" class="primary" id="step">Step one year</button><button type="button" id="play">Run</button><button type="button" id="finish">Complete run</button><button type="button" id="restart">Restart run</button><div class="speed-control"><label for="speed">Playback</label><select id="speed"><option value="1400">Slow · 1.4 s/year</option><option value="700" selected>Normal · 0.7 s/year</option><option value="250">Fast · 0.25 s/year</option></select></div></div>
+      <div class="timeline"><button type="button" id="previous">Previous year</button><div><label for="review-year">Review a computed year <output id="review-label" for="review-year">0</output></label><input id="review-year" type="range" min="0" max="0" step="1" value="0" aria-describedby="review-help"></div><button type="button" id="latest">Latest year</button></div>
+      </div>
+      <div class="card run-card">
+      <p id="review-help" class="control-help">Reviewing pauses playback and preserves your calculated history. Step or Run replays saved years before calculating new ones.</p>
+      <div class="stat-grid"><article><span>Without speculation</span><strong id="baseline-price">$70.00</strong><small id="baseline-price-year">Prior year</small></article><article><span>With speculation</span><strong id="speculation-price">$70.00</strong><small id="speculation-price-year">Prior year</small></article><article><span>Speculator wealth</span><strong id="wealth-value">$2,000.00</strong><small>Cash + inventory valuation</small></article><article><span>Baseline dynamics</span><strong id="behavior-value">Converging</strong><small id="ratio-value">D/B = 0.75</small></article></div>
+      <p id="run-progress"></p><p class="control-help">A boundary is the limit of this linear model, not a prediction of a negative real-world price. Stopped runs retain only their valid observations.</p>
+
       <div class="run-statuses"><p id="baseline-status"></p><p id="speculation-status"></p></div>
-      <div id="current-results" class="current-results"></div>
       <p id="announcement" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
-    </section>
-    <section aria-labelledby="cobweb-heading">
+      </div>
+    <section class="chart-section" aria-labelledby="cobweb-heading">
       <h2 id="cobweb-heading">Trace the cobweb</h2>
       <p class="legend"><span class="supply-key">Supply</span> · <span class="demand-key">Consumer demand (dashed)</span> · <span class="baseline-key">Baseline path</span> · <span class="speculation-key">Speculation path</span> · Dotted horizontal connectors show inventory trading.</p>
       <div class="plots"><figure class="card"><h3>Without speculation</h3><svg id="baseline-plot" role="img" aria-labelledby="baseline-plot-title baseline-plot-desc" viewBox="0 0 520 350"><title id="baseline-plot-title">Baseline cobweb</title><desc id="baseline-plot-desc"></desc></svg><figcaption id="baseline-summary"></figcaption></figure>
         <figure class="card"><h3>With speculation</h3><svg id="speculation-plot" role="img" aria-labelledby="speculation-plot-title speculation-plot-desc" viewBox="0 0 520 350"><title id="speculation-plot-title">Speculation cobweb</title><desc id="speculation-plot-desc"></desc></svg><figcaption id="speculation-summary"></figcaption></figure></div>
       <p>Supply maps the previous price to this year’s output. The vertical path then reaches the current clearing price. With inventory trading, the output point can be off consumer demand: the dotted horizontal connector leads to the consumer-purchases point on demand.</p>
     </section>
-    <section aria-labelledby="time-heading"><h2 id="time-heading">Watch change through time</h2>
+    <section class="chart-section" aria-labelledby="time-heading"><h2 id="time-heading">Watch change through time</h2>
       <div class="plots"><figure class="card"><h3>Price by year</h3><svg id="price-plot" role="img" aria-labelledby="price-plot-title price-plot-desc" viewBox="0 0 520 350"><title id="price-plot-title">Price time series</title><desc id="price-plot-desc"></desc></svg><figcaption id="price-summary"></figcaption></figure>
         <figure class="card"><h3>Quantity by year</h3><svg id="quantity-plot" role="img" aria-labelledby="quantity-plot-title quantity-plot-desc" viewBox="0 0 520 350"><title id="quantity-plot-title">Quantity time series</title><desc id="quantity-plot-desc"></desc></svg><figcaption id="quantity-summary"></figcaption></figure></div>
       <p class="legend"><span class="baseline-key">Baseline (solid)</span> · <span class="speculation-key">Speculation (dashed)</span> · <span class="consumption-key">Speculation consumer purchases (dotted)</span>. Equilibrium is a thin grey dashed line.</p>
     </section>
-    <section class="card" aria-labelledby="experiments-heading"><h2 id="experiments-heading">Optional guided experiments</h2>
-      <p>Each experiment loads its own starting conditions. Run the requested years, choose an explanation, and check. These are practice questions; there is no grade.</p>
-      <div class="button-row"><button type="button" data-prompt="converge">1. Convergence</button><button type="button" data-prompt="repeat">2. Repetition</button><button type="button" data-prompt="stabilize">3. Stabilization</button><button type="button" data-prompt="limits">4. Cash limits</button></div>
-      <div id="prompt-panel" hidden><h3 id="prompt-title"></h3><p id="prompt-question"></p><p id="prompt-instructions"></p><label for="answer">Your explanation</label><select id="answer"></select><button type="button" id="check">Check explanation</button><p id="prompt-feedback" role="status"></p></div>
+    <section aria-labelledby="finance-heading"><h2 id="finance-heading">Follow the speculator’s resources</h2>
+      <div class="plots"><figure class="card"><h3>Wealth and cash by year</h3><svg id="wealth-plot" role="img" aria-labelledby="wealth-plot-title wealth-plot-desc" viewBox="0 0 520 350"><title id="wealth-plot-title">Speculator wealth and cash</title><desc id="wealth-plot-desc"></desc></svg><figcaption id="wealth-summary"></figcaption><p class="legend"><span class="speculation-key">Wealth (solid)</span> · <span class="baseline-key">Cash (dashed)</span></p></figure>
+      <article class="card comparison-card"><p class="eyebrow">Read the evidence</p><h3>Did speculation soften this cycle?</h3><p id="comparison-result"></p><p id="comparison-detail"></p><p class="control-help">This compares the root mean square (RMS) distance from equilibrium over matching, valid production years. A smaller value means prices stayed closer to equilibrium in those years; it does not prove long-term stability.</p><hr><p id="trade-story"></p><p class="control-help">Wealth is cash plus inventory valued at the displayed market price. It is not realized profit or guaranteed liquidation proceeds.</p></article></div>
     </section>
-    <section aria-labelledby="data-heading"><h2 id="data-heading">Complete year-by-year data</h2>
-      <p>Year zero is the prior price used to determine the first year’s output. Signed trades: positive = buy into storage; negative = sell from storage. Inventory valuation is inventory × current price. Wealth adds cash; selling all inventory could change the price, so wealth is not guaranteed liquidation proceeds.</p>
+    <details class="card equations"><summary>Work through the displayed year</summary><p id="equilibrium"></p><p id="stability"></p><p>Each market uses its own previous clearing price. These equations explain the most recent valid observation in the selected year.</p><div id="current-results" class="current-results"></div></details>
+    </section>
+    <section aria-labelledby="data-heading"><h2 id="data-heading">Complete year-by-year data</h2><div class="button-row"><button type="button" id="export">Download computed data (CSV)</button><button type="button" id="print">Print current view</button></div><p class="control-help">Tables show all computed years; the selected year is highlighted. CSV includes full-precision observations, applied settings, and separate boundary records.</p>
+      <p>Year zero is the prior price used to determine the first year’s output. A dash means no valid observation, not zero. Signed trades: positive = buy into storage; negative = sell from storage. Inventory valuation is inventory × current price. Wealth adds cash; selling all inventory could change the price, so wealth is not guaranteed liquidation proceeds.</p>
       <div class="table-scroll" tabindex="0" role="region" aria-labelledby="data-heading"><table id="market-table"><caption>Comparison of market prices and quantities; all quantities in units</caption><thead><tr><th scope="col">Year</th><th scope="col">Baseline price ($)</th><th scope="col">Baseline output / purchases</th><th scope="col">Speculation price ($)</th><th scope="col">Speculation output</th><th scope="col">Consumer purchases</th></tr></thead><tbody></tbody></table></div>
       <div class="table-scroll" tabindex="0" role="region" aria-label="Speculator finances by year"><table id="finance-table"><caption>Speculator finances and trading constraints</caption><thead><tr><th scope="col">Year</th><th scope="col">Trade (units)</th><th scope="col">Cash ($)</th><th scope="col">Inventory (units)</th><th scope="col">Inventory valuation ($)</th><th scope="col">Wealth ($)</th><th scope="col">Constraint</th></tr></thead><tbody></tbody></table></div>
     </section>
@@ -106,6 +120,7 @@
     <p>Paul and Virginia Engler College of Business · West Texas A&amp;M University</p>
   </footer>
   <script src="js/model.js"></script>
+  <script src="js/analysis.js"></script>
   <script src="js/graph.js"></script>
   <script src="js/app.js"></script>
 </body>

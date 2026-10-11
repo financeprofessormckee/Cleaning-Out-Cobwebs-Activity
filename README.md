@@ -21,11 +21,16 @@ This activity is a browser adaptation of Proposal 25 in David Friedman's
 
 The full model, its adaptations from Friedman's description, and acceptance cases are in
 [SPECIFICATION.md](SPECIFICATION.md). The recorded source brief is in [DESIGN.md](DESIGN.md).
+The detailed review is in [REVIEW.md](REVIEW.md); the ambitious alternative's
+interface and analysis additions are documented in [PROPOSAL.md](PROPOSAL.md).
 
 ### Running it locally
 
 Open `index.html` in a browser. There's no build step, installation, or server, and
 everything is local. Model tests run with Node: `node tests/model-tests.cjs`.
+Observation/export tests run with `node tests/analysis-tests.cjs`. Optional
+Playwright browser checks run with `node tests/browser-tests.cjs`; see the review
+for setup and scope.
 
 ### License and Citation
 

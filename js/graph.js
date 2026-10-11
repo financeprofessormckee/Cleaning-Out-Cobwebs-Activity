@@ -10,6 +10,7 @@
     return node;
   }
   function number(n) { return n.toLocaleString('en-US', { maximumFractionDigits: 2 }); }
+  function tick(n) { return n >= 1000000 ? number(n / 1000000) + 'm' : n >= 10000 ? number(n / 1000) + 'k' : number(n); }
   function top(n) { return Math.max(1, Math.ceil(n * 1.05 / 10) * 10); }
   function frame(id, xmax, ymax, xlabel, ylabel, summary) {
     var svg = document.getElementById(id), title = svg.querySelector('title'), desc = svg.querySelector('desc');
@@ -23,7 +24,7 @@
       var xv = xmax * i / 4, yv = ymax * i / 4;
       plot.appendChild(el('line', { x1: left, x2: right, y1: y(yv), y2: y(yv), stroke: '#ddd' }));
       plot.appendChild(el('text', { x: x(xv), y: bottom + 21, 'text-anchor': 'middle' }, number(xv)));
-      plot.appendChild(el('text', { x: left - 9, y: y(yv) + 4, 'text-anchor': 'end' }, number(yv)));
+      plot.appendChild(el('text', { x: left - 9, y: y(yv) + 4, 'text-anchor': 'end' }, tick(yv)));
     }
     plot.appendChild(el('path', { d: 'M' + left + ',' + upper + 'V' + bottom + 'H' + right, fill: 'none', stroke: COLORS.axis }));
     plot.appendChild(el('text', { x: (left + right) / 2, y: 344, 'text-anchor': 'middle' }, xlabel));
@@ -38,10 +39,10 @@
   function latest(run) { return run.history[run.history.length - 1]; }
   function runSummary(run) {
     var row = latest(run), text = run.speculation ? 'With speculation. ' : 'Without speculation. ';
-    if (!row.year) return text + 'Starting prior price $' + number(row.price) + '; no production year has run.';
-    text += 'Year ' + row.year + ': price $' + number(row.price) + ', output ' + number(row.production) + ', consumer purchases ' + number(row.consumption) + ' units.';
+    if (!row.year) text += 'Starting prior price $' + number(row.price) + '; no valid production year has run.';
+    else text += 'Year ' + row.year + ': price $' + number(row.price) + ', output ' + number(row.production) + ', consumer purchases ' + number(row.consumption) + ' units.';
     if (run.speculation) text += ' Cash $' + number(row.cash) + ', inventory ' + number(row.inventory) + ' units; inventory valuation $' + number(row.valuation) + '; wealth $' + number(row.wealth) + '.';
-    if (run.stop) text += ' Stopped before year ' + run.stop.year + ': ' + run.stop.reason.toLowerCase() + '.';
+    if (run.stop) text += ' Stopped before year ' + run.stop.year + ': ' + run.stop.reason.toLowerCase() + ' (attempted output ' + number(run.stop.production) + ' units; pre-trade price $' + number(run.stop.preTradePrice) + '). Invalid results are not plotted.';
     return text;
   }
   function cobweb(id, run, p, eq, xmax, ymax) {
@@ -51,6 +52,12 @@
     line(f, [[p.C, 0], [p.C + p.D * supplyP, supplyP]], COLORS.supply, '', 'supply');
     dot(f, eq.quantity, eq.price, COLORS.axis, true);
     f.plot.appendChild(el('text', { x: 502, y: 17, 'text-anchor': 'end' }, '○ = equilibrium'));
+    if (run.speculation) {
+      [[p.buy, 'Buy below'], [p.sell, 'Sell above']].forEach(function (threshold) {
+        line(f, [[0, threshold[0]], [xmax, threshold[0]]], '#66796b', '2 8', 'policy-threshold', 1);
+        f.plot.appendChild(el('text', { x: 498, y: f.y(threshold[0]) - 5, 'text-anchor': 'end', 'class': 'chart-label' }, threshold[1] + ' $' + number(threshold[0])));
+      });
+    }
     var path = [[0, p.initialPrice]], lastQ = 0;
     var traded = run.history.filter(function (r) { return Math.abs(r.trade) > CobwebModel.EPS; });
     var lastTrade = traded[traded.length - 1];
@@ -64,20 +71,22 @@
       line(f, [[row.production, row.price], [row.consumption, row.price]], COLORS.consumer, '2 4', 'inventory-trade', 3);
       dot(f, row.consumption, row.price, COLORS.consumer, true);
       if (row === lastTrade) {
-        f.plot.appendChild(el('text', { x: f.x((row.production + row.consumption) / 2), y: f.y(row.price) - 8, 'text-anchor': 'middle' }, (row.trade > 0 ? 'Buy ' : 'Sell ') + number(Math.abs(row.trade))));
+        f.plot.appendChild(el('text', { x: Math.max(108, Math.min(435, f.x((row.production + row.consumption) / 2))), y: f.y(row.price) - 8, 'text-anchor': 'middle', 'class': 'chart-label' }, (row.trade > 0 ? 'Buy ' : 'Sell ') + number(Math.abs(row.trade))));
       }
     });
     var row = latest(run);
     if (row.year) dot(f, row.production, row.price, color, false);
     document.getElementById(id === 'baseline-plot' ? 'baseline-summary' : 'speculation-summary').textContent = summary;
   }
-  function render(state) {
+  function render(state, axisState) {
     var p = state.params, eq = CobwebModel.equilibrium(p), both = state.baseline.history.concat(state.speculation.history);
+    axisState = axisState || state;
+    both = axisState.baseline.history.concat(axisState.speculation.history);
     var qmax = top(Math.max.apply(null, [p.A, eq.quantity].concat(both.map(function (r) { return Math.max(r.production || 0, r.consumption || 0); }))));
     var pmax = top(Math.max.apply(null, [p.A / p.B, p.initialPrice, eq.price].concat(both.map(function (r) { return r.price; }))));
     cobweb('baseline-plot', state.baseline, p, eq, qmax, pmax);
     cobweb('speculation-plot', state.speculation, p, eq, qmax, pmax);
-    var timeMax = Math.max(8, Math.ceil(state.year / 4) * 4), b = latest(state.baseline), s = latest(state.speculation);
+    var timeMax = Math.max(8, Math.ceil(axisState.year / 4) * 4), b = latest(state.baseline), s = latest(state.speculation);
     var priceSummary = 'Latest baseline price: $' + number(b.price) + ' at year ' + b.year + '; latest speculative price: $' + number(s.price) + ' at year ' + s.year + '. Equilibrium: $' + number(eq.price) + '. Stopped runs end at their last valid year.';
     var f = frame('price-plot', timeMax, top(Math.max.apply(null, [eq.price].concat(both.map(function (r) { return r.price; })))), 'Year', 'Price ($)', priceSummary);
     line(f, [[0, eq.price], [timeMax, eq.price]], COLORS.axis, '3 4', 'equilibrium', 1.5);
@@ -97,6 +106,14 @@
       var r = rows[rows.length - 1]; dot(fq, r.year, r[series[1]], series[2], series[1] === 'consumption');
     });
     document.getElementById('quantity-summary').textContent = quantitySummary;
+    var wealthSummary = 'Year ' + s.year + ': cash $' + number(s.cash) + '; inventory valuation $' + number(s.valuation) + '; wealth $' + number(s.wealth) + '. Wealth is not guaranteed liquidation proceeds.';
+    if (state.speculation.stop) wealthSummary += ' Stopped before year ' + state.speculation.stop.year + '; no later observations.';
+    var wf = frame('wealth-plot', timeMax, top(Math.max.apply(null, axisState.speculation.history.map(function (row) { return Math.max(row.cash, row.wealth); }))), 'Year', 'Value ($)', wealthSummary);
+    [['wealth', COLORS.speculation, ''], ['cash', COLORS.baseline, '8 4']].forEach(function (series) {
+      line(wf, state.speculation.history.map(function (row) { return [row.year, row[series[0]]]; }), series[1], series[2], series[0]);
+      dot(wf, s.year, s[series[0]], series[1], series[0] === 'cash');
+    });
+    document.getElementById('wealth-summary').textContent = wealthSummary;
   }
   window.CobwebGraph = { render: render, runSummary: runSummary };
 })();
