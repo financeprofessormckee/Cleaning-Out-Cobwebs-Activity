@@ -1,6 +1,6 @@
 (function () {
   'use strict';
-  var M = CobwebModel, state = M.start(M.initial()), timer = null, dirty = false, promptId = null;
+  var M = CobwebModel, A = CobwebAnalysis, state = M.start(M.initial()), timer = null, dirty = false, promptId = null, viewYear = 0;
   var keys = Object.keys(M.LIMITS), $ = function (id) { return document.getElementById(id); };
   var money = function (n) { return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
   var num = function (n) { return n === null || n === undefined ? '—' : n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
@@ -9,16 +9,33 @@
     keys.forEach(function (key) { $('error-' + key).textContent = map[key] || ''; if (map[key]) $(key).setAttribute('aria-invalid', 'true'); else $(key).removeAttribute('aria-invalid'); });
   }
   function clearSuccess() { $('prompt-feedback').textContent = ''; }
+  function priceLimits() {
+    var A = $('A').value, B = $('B').value;
+    var valid = !M.validate(A, 'A') && !M.validate(B, 'B');
+    ['initialPrice', 'buy', 'sell'].forEach(function (key) {
+      if (valid) $(key).max = Number(A) / Number(B);
+      else $(key).removeAttribute('max');
+    });
+    $('price-limit').textContent = valid ? 'Current form price ceiling A/B: ' + money(Number(A) / Number(B)) + '.' : 'Enter valid A and B values to calculate the price ceiling.';
+  }
   function syncFields() {
     keys.forEach(function (key) { $(key).value = state.params[key]; });
-    ['initialPrice', 'buy', 'sell'].forEach(function (key) { $(key).max = state.params.A / state.params.B; });
+    priceLimits();
     dirty = false; errors({}); $('draft-status').textContent = ''; $('preset-status').textContent = '';
   }
   function controls() {
-    var end = M.finished(state);
+    var end = viewYear === state.year && M.finished(state);
+    $('run-draft-notice').hidden = !dirty;
     $('step').disabled = dirty || end; $('play').disabled = dirty || end;
     $('play').textContent = timer === null ? 'Run' : 'Pause';
     $('check').disabled = dirty;
+    $('finish').disabled = dirty || M.finished(state);
+    $('previous').disabled = viewYear === 0;
+    $('latest').disabled = viewYear === state.year;
+    $('review-year').disabled = state.year === 0;
+    $('review-year').max = state.year; $('review-year').value = viewYear;
+    $('review-label').textContent = viewYear;
+    $('review-year').setAttribute('aria-valuetext', 'Year ' + viewYear + ' of ' + state.year + ' computed');
   }
   function pause() { if (timer !== null) { clearInterval(timer); timer = null; } controls(); }
   function status(run) {
@@ -34,11 +51,13 @@
       var b = state.baseline.history[year], s = state.speculation.history[year];
       if (!b && !s) continue;
       var tr = document.createElement('tr'); tr.dataset.year = year;
+      if (year === viewYear) tr.setAttribute('aria-current', 'true');
       cell(tr, year, true);
       [b && b.price, b && b.production, s && s.price, s && s.production, s && s.consumption].forEach(function (v) { cell(tr, num(v)); });
       market.appendChild(tr);
       if (s) {
         var fr = document.createElement('tr'); fr.dataset.year = year; cell(fr, year, true);
+        if (year === viewYear) fr.setAttribute('aria-current', 'true');
         [s.trade, s.cash, s.inventory, s.valuation, s.wealth].forEach(function (v) { cell(fr, num(v)); });
         cell(fr, s.constraint || (year === 0 ? 'Initial cash; no inventory.' : 'No resource constraint.')); finance.appendChild(fr);
       }
@@ -46,13 +65,13 @@
     $('market-table').querySelector('tbody').replaceChildren(market);
     $('finance-table').querySelector('tbody').replaceChildren(finance);
   }
-  function currentResults() {
+  function currentResults(display) {
     var fragment = document.createDocumentFragment();
-    [state.baseline, state.speculation].forEach(function (run) {
+    [display.baseline, display.speculation].forEach(function (run) {
       var row = run.history[run.history.length - 1], article = document.createElement('article'), heading = document.createElement('h3');
       heading.textContent = (run.speculation ? 'With' : 'Without') + ' speculation · year ' + row.year; article.appendChild(heading);
       function paragraph(text) { var node = document.createElement('p'); node.textContent = text; article.appendChild(node); }
-      if (!row.year) paragraph('Prior price ' + money(row.price) + '. Production begins when you step year 1.');
+      if (!row.year) paragraph('Prior price ' + money(row.price) + '. ' + (run.stop ? 'No valid production year was completed. ' + status(run) : 'Production begins when you step year 1.'));
       else {
         paragraph('Output = ' + num(state.params.C) + ' + ' + num(state.params.D) + ' × ' + money(row.previousPrice) + ' = ' + num(row.production) + ' units.');
         paragraph('Pre-trade price = (' + num(state.params.A) + ' − ' + num(row.production) + ') / ' + num(state.params.B) + ' = ' + money(row.preTradePrice) + '.');
@@ -67,24 +86,54 @@
     });
     $('current-results').replaceChildren(fragment);
   }
+  function insights(display, eq) {
+    var b = display.baseline.history[display.baseline.history.length - 1];
+    var s = display.speculation.history[display.speculation.history.length - 1];
+    [['baseline', b], ['speculation', s]].forEach(function (pair) {
+      $(pair[0] + '-price').textContent = money(pair[1].price);
+      $(pair[0] + '-price-year').textContent = pair[1].year < viewYear ? 'Last valid: year ' + pair[1].year + ' (stopped)' : pair[1].year ? 'Clearing price · year ' + viewYear : 'Starting prior price';
+    });
+    $('wealth-value').textContent = money(s.wealth);
+    $('behavior-value').textContent = eq.behavior;
+    $('ratio-value').textContent = 'D/B = ' + num(eq.ratio);
+    var comparison = A.compare(display);
+    if (!comparison.years) {
+      $('comparison-result').textContent = 'Step one year to start comparing observed prices.';
+      if (M.finished(display)) $('comparison-result').textContent = 'No valid production years to compare. Adjust the starting conditions.';
+      $('comparison-detail').textContent = 'The shared starting price is excluded from the comparison.';
+    } else {
+      $('comparison-result').textContent = comparison.reduction === null ? 'The baseline is already at equilibrium; a percentage comparison is undefined.' :
+        Math.abs(comparison.reduction) < 0.05 ? 'Prices stayed equally close to equilibrium over these years.' :
+          Math.abs(comparison.reduction).toFixed(1) + '% ' + (comparison.reduction > 0 ? 'smaller' : 'larger') + ' price deviations with speculation.';
+      $('comparison-detail').textContent = 'Matching years 1–' + comparison.years + ': baseline RMS ' + money(comparison.baselineRms) + '; speculation RMS ' + money(comparison.speculationRms) + '. Stopped runs are not extended.';
+    }
+    $('trade-story').textContent = !s.year ? 'The speculator starts with ' + money(state.params.cash) + ' and no inventory.' :
+      'Year ' + s.year + ': ' + (s.trade > M.EPS ? 'bought ' + num(s.trade) + ' units' : s.trade < -M.EPS ? 'sold ' + num(-s.trade) + ' units' : 'no inventory trade') +
+      ' at ' + money(s.price) + '. Cash: ' + money(s.cash) + '; stored: ' + num(s.inventory) + ' units. ' + (s.constraint || 'No resource constraint.');
+  }
   function render() {
-    var eq = M.equilibrium(state.params);
-    $('run-progress').textContent = 'Through year ' + state.year + ' of ' + state.params.years + '. Both runs use the applied parameters.';
+    var display = A.atYear(state, viewYear), eq = M.equilibrium(state.params);
+    $('run-progress').textContent = 'Viewing year ' + viewYear + ' · Attempted through year ' + state.year + ' of ' + state.params.years + '. Last valid year: baseline ' + display.baseline.history[display.baseline.history.length - 1].year + ', speculation ' + display.speculation.history[display.speculation.history.length - 1].year + '. Both runs use the applied parameters.';
     $('equilibrium').textContent = 'Equilibrium: price ' + money(eq.price) + '; quantity ' + num(eq.quantity) + ' units. P* = (A − C)/(B + D).';
     $('stability').textContent = eq.behavior + ' baseline: D/B = ' + num(eq.ratio) + '. Price deviations reverse sign each year and ' + (eq.behavior === 'Converging' ? 'shrink.' : eq.behavior === 'Repeating' ? 'retain their size.' : 'grow until this linear model reaches its boundary.') + ' An exact equilibrium start stays there; speculation has a separate trajectory.';
-    $('baseline-status').textContent = status(state.baseline); $('speculation-status').textContent = status(state.speculation);
-    currentResults(); tables(); CobwebGraph.render(state); controls();
+    $('baseline-status').textContent = status(display.baseline); $('speculation-status').textContent = status(display.speculation);
+    $('baseline-status').classList.toggle('boundary', display.baseline.status === 'boundary');
+    $('speculation-status').classList.toggle('boundary', display.speculation.status === 'boundary');
+    currentResults(display); insights(display, eq); tables(); CobwebGraph.render(display, state); controls();
   }
-  function restart(params, message) { pause(); state = M.start(params); syncFields(); clearSuccess(); render(); announce(message); }
+  function restart(params, message) { pause(); state = M.start(params); viewYear = 0; syncFields(); clearSuccess(); render(); announce(message); }
   function step(automatic) {
-    if (dirty || M.finished(state)) return;
-    state = M.advance(state);
-    if (M.finished(state)) pause();
+    if (dirty || (viewYear === state.year && M.finished(state))) return;
+    var oldDisplay = A.atYear(state, viewYear);
+    if (viewYear < state.year) viewYear++;
+    else { state = M.advance(state); viewYear = state.year; }
+    var display = A.atYear(state, viewYear);
+    if (viewYear === state.year && M.finished(state)) pause();
     render();
-    if (!automatic || M.finished(state)) announce('Through year ' + state.year + '. ' + status(state.baseline) + ' ' + status(state.speculation));
+    if (!automatic || oldDisplay.baseline.status !== display.baseline.status || oldDisplay.speculation.status !== display.speculation.status) announce('Viewing year ' + viewYear + '. ' + status(display.baseline) + ' ' + status(display.speculation));
   }
   keys.forEach(function (key) {
-    $(key).addEventListener('input', function () { pause(); dirty = true; clearSuccess(); $('draft-status').textContent = 'Unapplied changes. Apply and restart, or Restart run to discard drafts. Existing results use the previous settings.'; controls(); });
+    $(key).addEventListener('input', function () { pause(); dirty = true; clearSuccess(); priceLimits(); $('draft-status').textContent = 'Unapplied changes. Apply and restart, or Restart run to discard drafts. Existing results use the previous settings.'; controls(); });
   });
   $('parameters').addEventListener('submit', function (event) {
     event.preventDefault(); pause();
@@ -92,7 +141,7 @@
     var invalid = M.validateParameters(values); errors(invalid);
     if (Object.keys(invalid).length) {
       dirty = true; controls(); $('draft-status').textContent = 'Correct the marked fields. Applied parameters and results are unchanged.';
-      $(Object.keys(invalid)[0]).focus(); announce('Parameters not applied. Correct the marked fields.'); return;
+      $('settings-details').open = true; $(Object.keys(invalid)[0]).focus(); announce('Parameters not applied. Correct the marked fields.'); return;
     }
     restart(values, 'Parameters applied. Both runs restarted at year zero.');
   });
@@ -109,9 +158,31 @@
   $('step').addEventListener('click', function () { step(false); });
   $('play').addEventListener('click', function () {
     if (timer !== null) { pause(); announce('Playback paused at year ' + state.year + '.'); return; }
-    if (dirty || M.finished(state)) return;
-    timer = setInterval(function () { step(true); }, 700); controls(); announce('Running one year every 700 milliseconds. Use Pause to stop.');
+    if (dirty || (viewYear === state.year && M.finished(state))) return;
+    timer = setInterval(function () { step(true); }, Number($('speed').value)); controls(); announce('Running one year every ' + $('speed').value + ' milliseconds. Use Pause to stop.');
   });
+  $('speed').addEventListener('change', function () { pause(); announce('Playback speed changed. Select Run to continue.'); });
+  function review(year) { pause(); viewYear = year; clearSuccess(); render(); }
+  $('review-year').addEventListener('input', function () { review(Number(this.value)); });
+  $('previous').addEventListener('click', function () { if (viewYear > 0) review(viewYear - 1); });
+  $('latest').addEventListener('click', function () { review(state.year); });
+  $('finish').addEventListener('click', function () {
+    if (dirty) return;
+    pause();
+    while (!M.finished(state)) state = M.advance(state);
+    viewYear = state.year; render();
+    announce('Run complete. ' + status(state.baseline) + ' ' + status(state.speculation));
+  });
+  $('export').addEventListener('click', function () {
+    var blob = new Blob([A.csv(state)], { type: 'text/csv;charset=utf-8' });
+    var url = URL.createObjectURL(blob), link = document.createElement('a');
+    link.href = url; link.download = 'cobwebs-through-year-' + state.year + '.csv';
+    document.body.appendChild(link); link.click(); link.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    announce('Downloaded all computed data using the applied settings.');
+  });
+  $('print').addEventListener('click', function () { pause(); window.print(); });
+  window.addEventListener('beforeprint', pause);
   document.addEventListener('visibilitychange', function () { if (document.hidden) pause(); });
   document.querySelectorAll('[data-prompt]').forEach(function (button) {
     button.addEventListener('click', function () {
@@ -127,7 +198,8 @@
   $('answer').addEventListener('change', clearSuccess);
   $('check').addEventListener('click', function () {
     if (dirty) return;
-    var result = M.checkPrompt(promptId, state, $('answer').value); $('prompt-feedback').textContent = result.message;
+    if (!$('answer').value) { $('prompt-feedback').textContent = 'Choose an explanation before checking.'; $('answer').focus(); return; }
+    var result = M.checkPrompt(promptId, A.atYear(state, viewYear), $('answer').value); $('prompt-feedback').textContent = result.message;
   });
   syncFields(); render();
 })();

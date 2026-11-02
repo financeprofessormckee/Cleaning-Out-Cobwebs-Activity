@@ -2,10 +2,11 @@
 
 **[Click Here to Launch the Interactive Activity](https://financeprofessormckee.github.io/Cleaning-Out-Cobwebs-Activity/)**
 
-> **Status:** v1 prototype under review with David Friedman. Not yet accessibility-audited
-> for teaching release.
+> **Status:** revised development version (November 2026), under review with David Friedman.
+> Not yet accessibility-audited for teaching release. Review notes for this revision are in
+> [REVIEW.md](REVIEW.md).
 
-Explore delayed production responses and how speculation can change price and quantity cycles. Producers set this year's output from last year's price. Students compare the same market with and without a finite-cash speculator across converging, repeating, and diverging presets, stepping year by year or running continuously.
+Explore delayed production responses and how speculation can change price and quantity cycles. Producers set this year's output from last year's price. Students compare the same market with and without a finite-cash speculator across converging, repeating, and diverging presets, stepping year by year or running continuously. This revision is experiment-first: presets and guided experiments up front, year-by-year review and replay, a complete-run button, playback speeds, policy guide lines, a wealth and cash chart, a matched-year comparison, CSV export, and a print view.
 
 ## Educator Guide: Classroom Integration
 
